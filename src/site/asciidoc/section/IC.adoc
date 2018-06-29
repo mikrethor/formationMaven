@@ -1,0 +1,9 @@
+= L'intégration continue
+
+Jenkins, Apache Continuum (2016/05/18 - Apache Continuum has been retired.), Hudson
+
+== Plugins
+
+== Rapports
+
+== Deploy

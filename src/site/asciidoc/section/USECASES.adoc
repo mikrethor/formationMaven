@@ -1,0 +1,25 @@
+= L'usage courant de maven
+
+== Le cycle de vie
+
+compiler, tester, deployer, installer
+
+== Les versions
+
+finale, snapshot
+
+
+== Les profils
+
+
+== La gestion de configuration
+
+
+== Utilisation de Maven au travers d'IDE
+
+=== Eclipse
+
+=== IntelliJ IDEA
+
+
+=== Génération de la documentation

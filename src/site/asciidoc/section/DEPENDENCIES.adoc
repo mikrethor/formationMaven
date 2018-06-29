@@ -1,0 +1,19 @@
+= La gestion des dépendances
+
+== Les dépendances directes et transitives
+
+=== Les dépendances directes
+
+=== Les dépendances transitives
+
+== Les repositories
+
+=== Le repository Maven Central
+
+=== Les autres
+
+jboss...
+
+=== Le repository d'entreprise
+
+Artifactory, Nexus, Archiva

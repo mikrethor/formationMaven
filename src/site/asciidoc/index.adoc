@@ -7,7 +7,9 @@ ifndef::sourcedir[:sourcedir: ../../main/java]
 
 == Bio
 
-TODO
+- Développeur Java depuis 13 ans
+- https://mikrethor.github.io/blog/[Blog]
+- @XavierBOUCLET
 
 == Les outils de builds dans l'écosystème Java
 
@@ -37,130 +39,508 @@ La valeur d'une application n'est pas dans le build mais dans son utilisation. I
 include::../../../001-minimaliste/pom.xml[tags=minimalPom]
 ----
 
-== Pendant la présentation des slides...
 
-* Press the `*s*` key to access speaker notes.
-* You can press `*b*` or `*.*` to blank/unblank your current screen.
-* Press the `*esc*` key to get an overview of your slides.
-* Press the down arrow key to see the next sub-slide (if exist !).
+=== Description du projet : le POM
+
+- le groupId / l'artifactId la  version du projet
+- la description du projet
+- les dépendances/les plugins
+- la manière de construire le projet
+- les repositories à utiliser
+- la documentation à générer
+- ...
+
+=== Le pom.xml aller plus loin
+
+En bref, il s'agit de votre nouveau meilleur ami (ou pas...)
+Pour plus d'informations sur le POM allez voir https://maven.apache.org/pom.html#What_is_the_POM[What_is_the_POM]
+
+=== (1\2) : Nommage
+
+Le groupId est l'identifiant unique du projet parmis tous les projets existants.
+
+L'artifactId est le nom du jar sans la version.
+
+=== (2/2) : Arborescences
+
+[ditaa, options="--no-shadows --scale 0.75 --round-corner"]
+----
++-----+
+| src |
++---+-+
+    |   +------+
+    +-->| main |
+    |   +---+--+
+    |       |   +------+                                  /---------------\
+    |       +-->| java |--------------------------------->|Sources Java   |
+    |       |   +------+                                  \---------------/
+    |       |   +------------+                            /--------------------\
+    |       +-->| ressources |--------------------------->|Ressources du projet|
+    |       |   +------------+                            \--------------------/
+    |       |   +---------------------+                   /--------------------\
+    |       +-->| ressources-filtered |------------------>|Ressources filtrées |
+    |       |   +---------------------+                   \--------------------/
+    |       |   +---------+                               /--------------------------------\
+    |       +-->| filters |------------------------------>|Les filtres pour les ressources |
+    |       |   +---------+                               \--------------------------------/
+    |       |   +-------+                                 /---------------\
+    |       +-->| webapp|-------------------------------->|Les sources web|
+    |           +-------+                                 \---------------/
+    |   +------+
+    +-->| test |
+    |   +---+--+
+    |       |   +------+                                  /------------------------\
+    |       +-->| java |--------------------------------->|Sources de tests Java   |
+    |       |   +------+                                  \------------------------/
+    |       |   +------------+                            /------------------\
+    |       +-->| ressources |--------------------------->|Ressources de test|
+    |       |   +------------+                            \------------------/
+    |       |   +---------------------+                   /-----------------------------\
+    |       +-->| ressources-filtered |------------------>|Ressources des tests filtrées|
+    |       |   +---------------------+                   \-----------------------------/
+    |       |   +---------+                               /----------------------------------------\
+    |       +-->| filters |------------------------------>|Les filtres pour les ressources des test|
+    |           +---------+                               \----------------------------------------/
+    |   +----+                                        /-----------------------\
+    +-->| it |--------------------------------------->|Les tests d'intégration|
+    |   +----+                                        \-----------------------/
+    |   +----------+                                  /----------------------\
+    +-->| assembly |--------------------------------->|Fichiers d'assemblage |
+    |   +----------+                                  \----------------------/
+    |   +------+                                      /----------------------------------\
+    +-->| site |------------------------------------->|Fichiers pour le site documentaire|
+    |   +------+                                      \----------------------------------/
+    |   +-------------+                               /----------------------------\
+    +-->| LICENSE.txt |------------------------------>|Fichier de license du projet|
+    |   +-------------+                               \----------------------------/
+    |   +------------+                                /----------------------------------------------------------\
+    +-->| NOTICE.txt |------------------------------->|Notice et attributions exigés par les librairies du projet|
+    |   +------------+                                \----------------------------------------------------------/
+    |   +-------------+                               /----------------------\
+    +-->| README.adoc |------------------------------>|Le lisez-moi du projet|
+        +-------------+                               \----------------------/
+----
+
+=== Ne pas sortir des conventions
+
+D'après mon exprérience, il est possible mais fortement déconseillé de sortir de ces conventions sous peine de rencontrer des problèmes lors d'utilisation de plugins maven spécifique.
+
+== Les repositories
+
+Vous avez peut-être déjà entendu que Maven télécharge la Terre entière (enfin moins que Docker...) ce qui est en partie vrai.
+Pour fonctionner, Maven a besoin de plugins qu'il va par défaut aller chercher sur le https://repo1.maven.org/maven2/[Maven Central].
+
 
 [NOTE.speaker]
 --
-Mes notes de slides sont visibles dans la fenêtre speaker, mais aussi dans le poly pdf
+En effet, même si un projet part du pom minimal vu précédemment, une version de Maven vient avec des plugins à utiliser dans le cycle de vie du projet.
+Pour connaître, les versions et les plugins utilisés par défaut, il faut se positionner à la racine du projet et utiliser la commande Maven suivante :
+--
+
+-----
+
+mvn help:effective-pom  -Doutput=effectivePom.xml
+
+-----
+
+[NOTE.speaker]
+--
+Dans ce fichier, se trouve par exemple les informations sur les repositories que Maven utilise pour télécharger les librairies et les plugins.
+Dans les faits Maven télécharge la librairie une fois et le stocke dans le repository dit local.
 --
 
 
-== Une première partie simple
 
-Par l'ouverture d'une sous-section avec ==
+=== Locaux
 
-Voir la doc de AsciiDoc en ligne pour la syntaxe :
+Le repository local se trouve en standard dans le répertoire %USER_FOLDER%/.m2
 
-http://asciidoctor.org/docs/user-manual/
+[NOTE.speaker]
+--
+(%USER_FOLDER% répretoir utilisateur système). Plus un développeur utilise de plugins, de dépendances et de version différentes plus se répertoire grossit.
+Les librairies se trouvent dans le sous répertoire repository de %USER_FOLDER%/.m2.
+Le chemin pour une dépendances est déterminée par son groupId/artifactId/version.
+--
+
+Exemple pour la déclaration de la librairie ci-dessous.
+
+[source,xml]
+-----
+
+<dependency>
+    <groupId>commons-io</groupId>
+    <artifactId>commons-io</artifactId>
+    <version>2.5</version>
+</dependency>
+
+-----
+
+Le chemin est : %USER_FOLDER%/.m2/repository/commons-io/commons-io/2.5
+
+=== Distants
+
+[NOTE.speaker]
+--
+Pour trouver une librairie ou un plugin Maven cherche d'abord dans son repository local puis par défaut, il va chercher dans le Maven central.
+Le Maven central n'est pas le seul repository distant qui existe.
+Après le Maven central, voici une liste des repositories maven les plus connus :
+--
+- https://maven.java.net/content/groups/public/
+- https://maven.repository.redhat.com/ga/
+- http://repo.springsource.org/release/
+- ...
+
+=== Utiliser repo distant
+
+[NOTE.speaker]
+--
+N'utiliser d'autres repositories que le central, qu'en cas d'absolue nécéssité.
+--
+
+Pour utiliser d'autres repository, il existe 2 méthodes :
+
+- configurer les informations du repository voulu dans la configuration Maven
+- créer un repository intermédiaire entre tous les repositories désirés (cas d'une entreprise par exemple)
+
+Pour plus d'infomation, c'est https://maven.apache.org/pom.html#Repositories[ici].
+
+== Les Plug-ins Maven
+
+Sans les plugins, Maven ne serait qu'une coquille vide. C'est pourquoi, il télécharge la Terre lors des premières utilisations.
+
+=== Définition
+
+Un plugin Maven est une fonctionnalité. Plus un projet a besoin de fonctionnalité, plus il utilise de plugins.
+
+http://maven.apache.org/plugins/
+
+Pour utiliser un plugin :
+
+- <build/>
+- <reporting/>
+
+=== Les cores
+
+[cols="2*"]
+|===
+|clean
+|suppression du répertoire target
+
+|compiler
+|compilation des sources
+
+|deploy
+|déploiement du projet sur un repository distant
+
+|failsafe
+|exécution des Junit d'intégration dans un classloader spécifique
+
+|install
+|installation de l'artefact dans le repository local (.m2)
+
+|resources
+|copie des ressources dans le répertoire de sortie pour ajout à l'artefact
+
+|site
+|génération du site documentaire
+
+|surefire
+|exécution des tests unitaires dans un classloader spécifique
+
+|verifier
+|lors des tests d'intégration vérifie l'existence de conditions
+|===
+
+=== Les plugins pour packager
+
+[cols="2*"]
+|===
+|ear
+|génération de l'EAR du projet
+
+|ejb
+|génération de l'EJB et du client optionnel du projet
+
+|jar
+|génération de le JAR du projet
+
+|rar
+|génération du RAR du projet
+
+|war
+|génération du WAR du projet
+
+|app-client/acr
+|génération d'une application client JavaEE à partir du projet
+
+|shade
+|génération JAR à partir du projet, comprenant les dépendances.
+
+|source
+|génération d'une JAR avec les sources du projet
+
+|===
+
+=== Les plugins de documentation
+
+[cols="2*"]
+|===
+|changelog
+|génération d'une liste des changements à partir du gestionnaire de sources
+
+|changes
+|génération d'un rapport à partir du gestionnaire de bug
+
+|checkstyle
+|génération d'un rapport checkstyle à partir du code
+
+|doap
+|génération d'un fichier DOAP à partir du fichier POM
+
+|docck
+|Plugin de vérification de la documentation
+
+|javadoc
+|génération de la javadoc à partir du code
+
+|jdeps
+|passage de l'outil JDeps sur le projet
+
+|jxr
+|génération de pages web des sources à partir du code
+
+|linkcheck
+|génération d'un rapport Linkcheck à partir de la documentation
+
+|pmd
+|génération d'un rapport PMD à partir du code
+
+|project-info-reports
+|génération des différents rapports du projet.
+
+|surefire-report
+|génération du rapport de tests unitaires
+
+|===
 
 
-== Un plan avec affichage progressif
+=== Les plugins d'outillage
+[cols="2*"]
+|===
+|ant
+|génération d'un fichier de build ant
 
-Option [%step]
-sur le contenu, uniquement sur les slides, pas le pdf
+|antrun
+|exécution d'un ensemble de tâches
 
-[%step]
-* La généricité ? C'est quoi ?
-* Comment on l'utilise ?
-* Comment on la défini ?
+|archetype
+|génération d'un squelette de projet à partir d'un archetype
 
+|assembly
+|génération de package sources, binaires, documentation, ...
 
-== Des sous-parties
+|dependency
+|gestion des dépendances (copie, décompression) et analyse
 
-pour les slides, Appuyez sur flèche bas pour les parcourir
+|enforcer
+|Environmental constraint checking (Maven Version, JDK etc), User Custom Rule Execution.
 
-=== sous-partie 1
-Contenu sous-partie 1
+|gpg
+|création de signatures pour les artefacts et les poms.
 
-=== sous-partie 2
-Contenu sous-partie 2
+|help
+|Get information about the working environment for the project.
 
+|invoker
+|Run a set of Maven projects and verify the output.
 
+|jarsigner
+|Signs or verifies project artifacts.
 
-== Include des sous-parties
+|patch
+|Use the gnu patch tool to apply patch files to source code.
 
-Avec une option include
+|pdf
+|Generate a PDF version of your project's documentation.
 
-.include::section/chapitre1.adoc[]
+|plugin
+|Create a Maven plugin descriptor for any mojos found in the source tree, to include in the JAR.
 
+|release
+|Release the current project - updating the POM and tagging in the SCM.
+
+|remote-resources
+|Copy remote resources to the output directory for inclusion in the artifact.
+
+|repository
+|Plugin to help with repository-based tasks.
+
+|scm
+|Execute SCM commands for the current project.
+
+|scm-publish
+|Publish your Maven website to a scm location.
+
+|stage
+|Assists with release staging and promotion.
+
+|toolchains
+|Allows to share configuration across plugins.
+
+|===
+
+=== Les autres
+
+Il existe une multitude d'autres plugins pour pléthore de besoins :
+
+- des plugins entreprise
+- github
+- ....
+
+En plus des plugins existants, il est possible de créer son propre plugin. Nous aborderons ce point plus tard.
+
+== Les goals
+
+=== Définition
+
+Le goal est l'objectif du plugin. Il est exécuté durant les phases
+
+https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html[Lifecycle]
+
+-----
+
+mvn plugin:goal
+
+-----
+
+=== Les goals standards
+
+image::maven-goals-phases.png[Phases]
+
+=== Les goals spécifiques
+
+Même chose que précédemment mais avec des plugins spécifiques en dehors des plugins fait par l'équipe Maven.
+
+-----
+
+mvn myplugin:mygoal
+
+-----
+
+== La gestion des dépendances
+
+=== Les dépendances directes et transitives
+
+- directes : directement définies dans le pom
+- transtives : définies dans les dépendances des dépendances
+
+=== Visualisation des dépendances
+
+[source,xml]
+-----
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.data</groupId>
+        <artifactId>spring-data-jpa</artifactId>
+        <version>2.0.8.RELEASE</version>
+    </dependency>
+</dependencies>
+-----
+
+-----
+
+mvn dependency:tree
+
+-----
+
+== Le site Maven
+
+=== Génération du site
+
+Le site est généré à partir des informations du pom
+
+Il faut ajouter un fichier site.xml sous src/site :
+
+[source,XML]
+-----
+
+<project name="My Site Title">
 ...
+</project>
 
+-----
 
-include::section/chapitre1.adoc[]
+=== Adaptation du site
+[source,XML]
+-----
 
-include::section/chapitre2.adoc[]
+    <body>
+        <menu ref="modules"/>
+        <menu ref="reports"/>
+    </body>
 
+-----
 
-=== Du code Java
+=== Les différents rapports
 
-Un code à éviter
+[source,XML]
+-----
 
-[source,java]
-----
-    public class Code extends Thread {
-     public void run() {
-       System.out.println("Hello Thread");
-     }
-    }
-----
+    <body>
+        <menu ref="modules"/>
+        <menu ref="reports"/>
+    </body>
 
+-----
 
-=== Mieux : du code Java exécutable dans le projet !
+Junit, Checkstyle, PMD, checkstyle
 
-Un include de code dans le code source Java du projet
+=== La documentation personalisées
 
-Ici les commentaires // tag::contains[] dans le code définissent
-la sous-partie du code source à inclure dans le document
+Il est posisble de générer des pages HTML dans différents formats :
 
-[source,java]
-----
-include::{sourcedir}/base/Methode.java[tags=contains,indent=0]
-----
+https://maven.apache.org/doxia/references/index.html[Liste formats]
 
+[source,XML]
+-----
+        <menu name="Mes Pages">
+            <item name="Ma page" href="test.html"/>
+        </menu>
+-----
 
-== un diagramme PlantUML
+=== Le fichier de description du site
 
-Définition d'un diagramme en mode texte et affichage graphique
+Comment configurer le site.xml https://maven.apache.org/plugins/maven-site-plugin/examples/sitedescriptor.html#[documentation]
 
-[plantuml,auth-protocol]
-....
-Alice -> Bob: Authentication Request
-Bob --> Alice: Authentication Response
+=== Changement de skin
 
-Alice -> Bob: Another authentication Request
-Alice <-- Bob: another authentication Response
-....
+[source,XML]
+-----
+<skin>
+    <groupId>org.apache.maven.skins</groupId>
+    <artifactId>maven-fluido-skin</artifactId>
+    <version>1.7</version>
+</skin>
+-----
 
+=== Les autres sorties possibles pour la documentation
 
-== Attributs
+-----
 
-Flèche bas pour visualiser les éléments
+mvn pdf:pdf
 
-=== Attributs 1
-.Built-in
-asciidoctor-version:: {asciidoctor-version}
-safe-mode-name:: {safe-mode-name}
-docdir:: {docdir}
-docfile:: {docfile}
-imagesdir:: {imagesdir}
+-----
 
-=== Attributs 2
-.Custom
-project-version:: {project-version}
-sourcedir:: {sourcedir}
+== Aller plus loin
 
-
+- https://maven.apache.org[Site Maven]
+- https://github.com/ndeloof/apache-maven-book[Référence Maven en français]
+- https://github.com/sonatype/maven-guide-en[Maven definitive guide]
+- https://maven.apache.org/articles.html[Autres références]
 
 == This is the end !
 
-Avec une image :
-
 [.thumb]
-image::end.jpg[scaledwidth=75%]
+image::graven.png[Graven]
 
 
